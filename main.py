@@ -1,34 +1,34 @@
 import httplib2
-import oauth2client
 import requests
 import self as self
 import simplejson as json
-from googleapiclient import errors, discovery
+import google.oauth2.credentials
+from googleapiclient import errors
 from oauth2client import client
 from oauth2client.tools import run_flow
 from oauth2client.file import Storage
-from apiclient.discovery import build
-from apiclient.http import BatchHttpRequest
-import google.oauth2.credentials
+from googleapiclient.discovery import build
+from googleapiclient.http import BatchHttpRequest
 
 
 def print_menu():
     print("""
-            Cloud Data Recovery:
-            ------------
+        ******************************
+        * Google Cloud Data Recovery *
+        ******************************
 
-            1. Input Google Access Token (Profile Data)
-            2. Input Google Access Token (Email Data)
-            3. Create Google Access Token (No App Data)
-            4. Create Google Access Token (Supplied by App)
-            5. Quit
+        1. Input Google Access Token (Profile Data)
+        2. Input Google Access Token (Email Data)
+        3. Create Google Access Token (No App Data)
+        4. Create Google Access Token (Supplied by App)
+        5. Quit
             """)
 
 
 def main():
     user_response = None
     print_menu()
-    choice = input("Type number of the option you require: ")
+    choice = input("Type number option you require: ")
     if choice == "1":
         access_token = input("(PROFILE) Enter your Google Access Token: ")
         user_response = query_profile_api(access_token)
@@ -55,12 +55,12 @@ def user_request_access_token():
     client_id = '280174354411-s5ss17k6bb39ql04nf472fjlteh9nqmv.apps.googleusercontent.com'
     client_secret = 'h0gtTSge5BmtHxHOzf83cRdC'
 
-    flow = oauth2client.client.OAuth2WebServerFlow(
-                                                client_id=client_id,
-                                                client_secret=client_secret,
-                                                scope= 'https://www.googleapis.com/auth/userinfo.profile '
-                                                'https://www.googleapis.com/auth/gmail.readonly',
-                                                redirect_uri='http://localhost:8080')
+    flow = client.OAuth2WebServerFlow(
+        client_id=client_id,
+        client_secret=client_secret,
+        scope='https://www.googleapis.com/auth/userinfo.profile '
+              'https://www.googleapis.com/auth/gmail.readonly',
+        redirect_uri='http://localhost:8080')
 
     storage = Storage('token.data')
 
@@ -79,18 +79,18 @@ def generate_access_token():
     client_secret = input('Input Client Secret from App: ')  # Client Secret found in the app, linked to Google
     refresh_token = input('Input Refresh Token from App: ')
 
-    cred = oauth2client.client.GoogleCredentials(
-                                                access_token=None,
-                                                client_id=client_id,
-                                                client_secret=client_secret,
-                                                refresh_token=refresh_token,
-                                                token_expiry=None,
-                                                token_uri='https://accounts.google.com/o/oauth2/token',
-                                                user_agent='Python client library',
-                                                revoke_uri=oauth2client.GOOGLE_REVOKE_URI)
+    cred = client.GoogleCredentials(
+        access_token=None,
+        client_id=client_id,
+        client_secret=client_secret,
+        refresh_token=refresh_token,
+        token_expiry=None,
+        token_uri='https://accounts.google.com/o/oauth2/token',
+        user_agent='Python client library',
+        revoke_uri='https://accounts.google.com/o/oauth2/revoke')
     http = cred.authorize(httplib2.Http())
     cred.refresh(http)
-    self.gmail_service = discovery.build('gmail', 'v1', credentials=cred)
+    self.gmail_service = build('gmail', 'v1', credentials=cred)
     print("Access Token: %s" % cred.access_token)
     return
 
@@ -98,8 +98,8 @@ def generate_access_token():
 def query_email_api(access_token):
     """
     this queries the Gmail Batch API for Gmail messages.
-    :param access_token: an oauth access token
-    :return:
+    param access_token: an oauth access token
+    return:
     """
     f = open("emaildata.json", "w+")
     f.close()
@@ -133,8 +133,8 @@ def query_email_api(access_token):
         print('An error occurred: %s' % error)
 
     choice = input("%d Pages of Messages have been found on this account. It is estimated that"
-                    "would be %d Messages.\nWould you like to continue? Type Y to Proceed, otherwise type any key: " % (
-                    count, message_estimate))
+                   "would be %d Messages.\nWould you like to continue? Type Y to Proceed, otherwise type any key: " % (
+                       count, message_estimate))
     if choice == "Y":
         message_ids_sorted = ([message_id['id'] for message_id in messages])
         batch = BatchHttpRequest()
@@ -149,8 +149,8 @@ def query_email_api(access_token):
 def query_profile_api(access_token):
     """
     This function queries the Google Profile API for OAuth and returns name and details.
-    :param access_token: OAuth access token.
-    :return data: Returns the response from the Profile API and passes it through to the Json file.
+    param access_token: OAuth access token.
+    return data: Returns the response from the Profile API and passes it through to the Json file.
     """
     scope = "https://www.googleapis.com/userinfo/v2/me"
 
@@ -167,8 +167,8 @@ def query_profile_api(access_token):
 def write_files(user_response):
     """
     Writes generic json blobs to disk
-    :param user_response: Generic json blob
-    :return:
+    param user_response: Generic json blob
+    return:
     """
     with open('data.json', 'w') as outfile:
         json.dump(user_response, outfile, indent=4, sort_keys=True)
